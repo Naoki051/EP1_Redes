@@ -46,9 +46,8 @@ class ClientHandler(threading.Thread):
                 else:
                     self.nome = nome  # Atribui o nome ao jogador.
                     jogadores[nome] = self  # Adiciona o jogador à lista global.
-                    self.enviar(f"Bem-vindo, {nome}!")
                     self.anunciar(f"{nome} entrou no jogo!")
-                    self.enviar("Comandos: /START, /SCORE, /END ou /DESCONECTAR")
+                    self.enviar(f"Bem-vindo, {nome}!\nComandos: /START, /SCORE, /END ou /DESCONECTAR")
                     print(f"Jogador {nome} conectado de {self.addr}")
 
             try:
@@ -133,9 +132,8 @@ class ClientHandler(threading.Thread):
         Envia uma mensagem para todos os jogadores conectados.
         """
         global jogadores
-        with lock:
-            for cliente in jogadores.values():
-                cliente.enviar(mensagem)
+        for cliente in jogadores.values():
+            cliente.enviar(mensagem)
 
     def ranking(self):
         """
@@ -156,23 +154,21 @@ class ClientHandler(threading.Thread):
         Finaliza o jogo em andamento e anuncia o ranking.
         """
         global jogo_comecou
-        with lock:
-            if not jogo_comecou:
-                self.enviar("Nenhum jogo em andamento para finalizar.")
-                return
-            self.anunciar(f"Jogo finalizado por: {self.nome}!")
-            jogo_comecou = False
-            str_rank = self.ranking()  # Obtém o ranking.
-            self.anunciar(str_rank)  # Anuncia o ranking.
+        if not jogo_comecou:
+            self.enviar("Nenhum jogo em andamento para finalizar.")
+            return
+        self.anunciar(f"Jogo finalizado por: {self.nome}!")
+        jogo_comecou = False
+        str_rank = self.ranking()  # Obtém o ranking.
+        self.anunciar(str_rank)  # Anuncia o ranking.
 
     def zerar_scores(self):
         """
         Zera as pontuações de todos os jogadores.
         """
         global jogadores
-        with lock:
-            for jogador in jogadores.values():
-                jogador.score = 0
+        for jogador in jogadores.values():
+            jogador.score = 0
 
     def processar_adivinhacao(self, opcao):
         """
