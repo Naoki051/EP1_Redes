@@ -33,22 +33,23 @@ class ClientHandler(threading.Thread):
         print(f"Conectado com {self.addr}")
         with self.conn:
             # Solicita o nome do usuário ao conectar.
-            self.enviar("Digite seu nome de usuário: ")
-            nome = self.conn.recv(1024).decode()
+            while True:
+                self.enviar("Digite seu nome de usuário: ")
+                nome = self.conn.recv(1024).decode()
 
-            # Verifica se o nome de usuário já está em uso.
-            with lock:
-                if nome in jogadores:
-                    self.enviar("Nome de usuário já em uso.")
-                    print(f"Conexão encerrada. Tentativa de conexão com nome de usuário já em uso: {nome} de {self.addr}")
-                    self.conn.close()
-                    return
-                else:
-                    self.nome = nome  # Atribui o nome ao jogador.
-                    jogadores[nome] = self  # Adiciona o jogador à lista global.
-                    self.anunciar(f"{nome} entrou no jogo!")
-                    self.enviar(f"Bem-vindo, {nome}!\nComandos: /START, /SCORE, /END ou /DESCONECTAR")
-                    print(f"Jogador {nome} conectado de {self.addr}")
+                # Verifica se o nome de usuário já está em uso.
+                with lock:
+                    if nome in jogadores:
+                        self.enviar("Nome de usuário já em uso.")
+                        print(f"Tentativa de conexão com nome de usuário já em uso: {nome} de {self.addr}")
+                        
+                    else:
+                        self.nome = nome  # Atribui o nome ao jogador.
+                        jogadores[nome] = self  # Adiciona o jogador à lista global.
+                        self.anunciar(f"{nome} entrou no jogo!")
+                        self.enviar(f"Bem-vindo, {nome}!\nComandos: /START, /SCORE, /END ou /DESCONECTAR")
+                        print(f"Jogador {nome} conectado de {self.addr}")
+                        break
 
             try:
                 while True:
@@ -93,9 +94,8 @@ class ClientHandler(threading.Thread):
         Remove o jogador da lista global de jogadores.
         """
         global jogadores
-        with lock:
-            if self.nome in jogadores:
-                del jogadores[self.nome]
+        if self.nome in jogadores:
+            del jogadores[self.nome]
 
     def processa_comando(self, comando):
         """
@@ -118,14 +118,13 @@ class ClientHandler(threading.Thread):
         Inicia um novo jogo, gerando um número aleatório a ser adivinhado.
         """
         global jogo_comecou, numero_para_adivinhar
-        with lock:
-            if jogo_comecou:
-                self.enviar("Jogo já iniciado!")
-                return
-            numero_para_adivinhar = random.randint(1, 100)  # Gera um número aleatório.
-            jogo_comecou = True  # Marca que o jogo começou.
-            print(f"Novo número gerado: {numero_para_adivinhar}")
-            self.anunciar(f"Novo jogo iniciado! Tente adivinhar o número entre 0 e 100.")
+        if jogo_comecou:
+            self.enviar("Jogo já iniciado!")
+            return
+        numero_para_adivinhar = random.randint(1, 100)  # Gera um número aleatório.
+        jogo_comecou = True  # Marca que o jogo começou.
+        print(f"Novo número gerado: {numero_para_adivinhar}")
+        self.anunciar(f"Novo jogo iniciado! Tente adivinhar o número entre 0 e 100.")
 
     def anunciar(self, mensagem):
         """
@@ -140,14 +139,13 @@ class ClientHandler(threading.Thread):
         Retorna o ranking dos jogadores com base nas suas pontuações.
         """
         global jogadores
-        with lock:
-            ranking = sorted(jogadores.values(), key=lambda jogador: jogador.score, reverse=True)
-            mensagem = "Ranking:\n"
-            posicao = 1
-            for jogador in ranking:
-                mensagem += f"{posicao}. {jogador.nome}: {jogador.score}\n"
-                posicao += 1
-            return mensagem
+        ranking = sorted(jogadores.values(), key=lambda jogador: jogador.score, reverse=True)
+        mensagem = "Ranking:\n"
+        posicao = 1
+        for jogador in ranking:
+            mensagem += f"{posicao}. {jogador.nome}: {jogador.score}\n"
+            posicao += 1
+        return mensagem
 
     def finalizar_jogo(self):
         """
